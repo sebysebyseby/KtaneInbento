@@ -17,16 +17,31 @@ public class Inbento : MonoBehaviour {
    public Texture[] SolutionTiles;
 
    public GameObject[] SolutionTileObjects;
+   public GameObject[] BoardTileObjects;
 
-   public Material[] tileMaterials;
+   public GameObject helloWorldText;
+
+   // These objects will hold all the tiles, so you can easily add add and position tiles, then rotate the whole shape
+   public GameObject piece1;
+   public GameObject piece2;
+   public GameObject piece3;
+   public GameObject piece4;
+
+   public GameObject puzzlePiece1x1Template;
+
+   public Material[] tileMaterials; // 0 is reserved as an empty value
+
+   public KMSelectable undoButton;
 
    static int ModuleIdCounter = 1;
    int ModuleId;
    private bool ModuleSolved;
 
-   private  bool test;
-
    int[][] Solution;
+   int[][] BoardState;
+   int boardWidth = 3; // in case I want to increase the size of the grid later
+   int boardHeight = 3;
+   int numberOfPieces = 4;
 
    void Awake () { //Avoid doing calculations in here regarding edgework. Just use this for setting up buttons for simplicity.
       ModuleId = ModuleIdCounter++;
@@ -39,6 +54,9 @@ public class Inbento : MonoBehaviour {
       */
 
       //button.OnInteract += delegate () { buttonPress(); return false; };
+
+      
+      undoButton.OnInteract += delegate () { pressUndoButton(); return false; };
 
    }
 
@@ -57,30 +75,157 @@ public class Inbento : MonoBehaviour {
       //    tileObject.GetComponent<MeshRenderer>().material = tileMaterials[0];
       // }
 
-      // Create a random desired solution
-      Solution = new int[3][];
-      for (int i = 0; i < 3; i++) {
-         Solution[i] = new int[3];
-         for (int j = 0; j < 3; j++) {
-            int randomIndex = Rnd.Range(0, tileMaterials.Length);
-            Debug.Log("i: " + i + " j: " + j + " randomIndex: " + randomIndex);
-
-            Solution[i][j] = randomIndex;
+      // Create a random solution
+      Solution = createEmptyTiles();
+      for (int i = 0; i < boardHeight; i++) {
+         for (int j = 0; j < boardWidth; j++) {
+            var materialIndex = Rnd.Range(1, tileMaterials.Length);
+            Solution[i][j] = materialIndex;
             var tileObject = SolutionTileObjects[i * 3 + j];
-            tileObject.GetComponent<MeshRenderer>().material = tileMaterials[randomIndex];
+            tileObject.GetComponent<MeshRenderer>().material = tileMaterials[materialIndex];
          }
       }
-      Debug.Log("Solution: " + Solution[0][0] + " " + Solution[0][1] + " " + Solution[0][2] + " " + Solution[1][0] + " " + Solution[1][1] + " " + Solution[1][2] + " " + Solution[2][0] + " " + Solution[2][1] + " " + Solution[2][2]);
+
+      // clone the solution so I don't accidentally modify the original
+      BoardState = createEmptyTiles();
+      for (int i = 0; i < boardHeight; i++) {
+         for (int j = 0; j < boardWidth; j++) {
+            BoardState[i][j] = Solution[i][j];
+         }
+      }
+
+      // Next, create a new piece.
+      for (int i = 0; i < numberOfPieces; i++) {
+         // creates the piece
+         Piece generatedPiece = generatePiece(BoardState);
+         // updates the board state
+         for (int j = 0; j < boardHeight; j++) {
+            for (int k = 0; k < boardWidth; k++) {
+               if (generatedPiece.tiles[j][k] != 0) {
+                  var material = generatedPiece.tiles[j][k];
+                  var newMaterial = material;
+                  while (newMaterial == material) {
+                     newMaterial = Rnd.Range(1, tileMaterials.Length);
+                  }
+                  BoardState[j][k] = newMaterial;
+               }
+            }
+         }
+      }
+
+      // Draw the board state
+      for (int i = 0; i < boardHeight; i++) {
+         for (int j = 0; j < boardWidth; j++) {
+            var materialIndex = BoardState[i][j];
+            var tileObject = BoardTileObjects[i * 3 + j];
+            tileObject.GetComponent<MeshRenderer>().material = tileMaterials[materialIndex];
+         }
+      }
+
+      testFunction();
    }
 
-   public class Shape { //random comment here.
-      public string id;
+   // A function I use to test misc stuff
+   void testFunction()
+   {
+      // I need to instantiate a new 1x1 piece, and make it the child of the piece1 game object
+      // this should work exactly as though I dragged the 1x1 game object into the piece 1 game object
+      // GameObject newPiece = Instantiate(puzzlePiece1x1Template, piece1.transform.position, Quaternion.identity);
+      // newPiece.transform.parent = piece1.transform;
+      // newPiece.transform.localPosition = new Vector3(puzzlePiece1x1Template.transform.localPosition.x, puzzlePiece1x1Template.transform.localPosition.y, puzzlePiece1x1Template.transform.localPosition.z);
+      // newPiece.transform.localRotation = Quaternion.identity;
+      // newPiece.transform.localScale = new Vector3(puzzlePiece1x1Template.transform.localScale.x, puzzlePiece1x1Template.transform.localScale.y, puzzlePiece1x1Template.transform.localScale.z);
+      // newPiece.GetComponent<MeshRenderer>().material = tileMaterials[0];
+
+
+      // Instantiate a 2x1 piece -- successful so far
+      // GameObject newPiece2 = Instantiate(puzzlePiece1x1Template, piece1.transform.position, Quaternion.identity);
+      // newPiece2.transform.parent = piece1.transform;
+      // newPiece2.transform.localPosition = new Vector3(puzzlePiece1x1Template.transform.localPosition.x + 0.15f, puzzlePiece1x1Template.transform.localPosition.y, puzzlePiece1x1Template.transform.localPosition.z);
+      // newPiece2.transform.localScale = new Vector3(puzzlePiece1x1Template.transform.localScale.x, puzzlePiece1x1Template.transform.localScale.y, puzzlePiece1x1Template.transform.localScale.z);
+      // newPiece2.GetComponent<MeshRenderer>().material = tileMaterials[0];
+
+      // GameObject newPiece3 = Instantiate(puzzlePiece1x1Template, piece1.transform.position, Quaternion.identity);
+      // newPiece3.transform.parent = piece1.transform;
+      // newPiece3.transform.localPosition = new Vector3(puzzlePiece1x1Template.transform.localPosition.x - 0.15f, puzzlePiece1x1Template.transform.localPosition.y, puzzlePiece1x1Template.transform.localPosition.z);
+      // newPiece3.transform.localScale = new Vector3(puzzlePiece1x1Template.transform.localScale.x, puzzlePiece1x1Template.transform.localScale.y, puzzlePiece1x1Template.transform.localScale.z);
+      // newPiece3.GetComponent<MeshRenderer>().material = tileMaterials[0];
+
+      // this I cannot do.
+      // newPiece3.transform.localPosition.x += 0.4f;
+   }
+
+   // To generate a piece:
+   // - pick a random shape
+   // - "fit it" randomly on the solution grid to determine what the tiles should be
+   // - return the piece
+   public Piece generatePiece(int[][] solution) {
+      // for now, always do 1x1 piece
+      // choose a random tile in the solution grid
+      int row = Rnd.Range(0, 3);
+      int column = Rnd.Range(0, 3);
+      int tile = solution[row][column];
+
+      // create a new set of tiles using the randomly picked solution tile
+      var tiles = createEmptyTiles();
+      tiles[column][row] = tile;
+
+      var piece = new Piece(tiles, "1x1");
+      Debug.Log("generated piece: " + piece.tiles[0][0] + " " + piece.tiles[0][1] + " " + piece.tiles[0][2] + " " + piece.tiles[1][0] + " " + piece.tiles[1][1] + " " + piece.tiles[1][2] + " " + piece.tiles[2][0] + " " + piece.tiles[2][1] + " " + piece.tiles[2][2]);
+      return piece;
+
+      // TODO: make it return more than 1x1
+      // For now, I'll always pick 1x1 instead of
+      // create copy of s1x1
+      var newShape = new Shape(createEmptyTiles(), "1x1");
+
+      if (newShape.size == "1x1") {
+      }
+
+      if (newShape.size == "2x1" || newShape.size == "1x2") {
+
+      }
+      return null;
+   }
+
+   public int[][] createEmptyTiles() {
+      var tiles = new int[boardHeight][];
+      for (int i = 0; i < boardHeight; i++) {
+         tiles[i] = new int[boardWidth];
+      }
+      return tiles;
+   }
+
+
+   public class Shape
+   { //random comment here.
+      public int[][] tiles;
       public string size;
 
-      public Shape(string id, string size) {
-         this.id = id;
+      public Shape(int[][] tiles, string size)
+      {
+         this.tiles = tiles;
          this.size = size;
       }
+
+      // public int 
+   }
+
+   public class Piece
+   {
+      public int[][] tiles;
+      public string size;
+      public int rotation;
+      public string position;
+
+      public Piece(int[][] tiles, string size, int rotation = 0, string position = null)
+      {
+         this.tiles = tiles;
+         this.size = size;
+         this.rotation = rotation;
+         this.position = position;
+      }
+
    }
 
    // Shape definitions:
@@ -89,6 +234,8 @@ public class Inbento : MonoBehaviour {
    // x (arbitrary separator)
    // #### (tiles in the shape, as though they were in a 3x3 grid starting on 1 and going reading order)
 
+
+   /*
    // 1-tile shapes
    static Shape s1x1 = new Shape("test", "1x1");
    // 2-tile shapes
@@ -141,12 +288,32 @@ public class Inbento : MonoBehaviour {
    static Shape s4x1469 = new Shape("test", "3x3");
    static Shape s4x1568 = new Shape("test", "3x3");
    static Shape s4x2468 = new Shape("test", "3x3");
+   */
 
    // TODO - I should be able to dynamically create shapes, but not needed for now
 
 
 
+   void pressUndoButton () {
+      Debug.Log("pressUndoButton called");
+      GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
+      GetComponent<KMSelectable>().AddInteractionPunch(0.75f);
+      // // move the hellow world text 0.1 units to the left
+      // helloWorldText.GetComponent<Transform>().position = new Vector3(helloWorldText.GetComponent<Transform>().position.x - 0.008f, helloWorldText.GetComponent<Transform>().position.y, helloWorldText.GetComponent<Transform>().position.z);
+   }
 
+   // Rotates the piece 90 degrees clockwise
+   // Rotates the object containing all the individual tiles for smooth and simple rotation
+   void rotatePiece(GameObject piece) {
+      piece.transform.GetChild(0).transform.Rotate(0, 90, 0);
+   }
+
+   void hidePiece(GameObject piece) {
+      // hide the meshrenderer of all children with a foreach loop
+      foreach (Transform child in piece.transform) {
+         child.GetComponent<MeshRenderer>().enabled = false;
+      }
+   }
 
    void Update () { //Shit that happens at any point after initialization
 
