@@ -2921,10 +2921,10 @@ MonoBehaviour:
   - {fileID: 1662564383697274}
   - {fileID: 1911464510017784}
   helloWorldText: {fileID: 1632732172504050}
-  piece1: {fileID: 1207552765193908}
-  piece2: {fileID: 1913656828659832}
-  piece3: {fileID: 1350700209506878}
-  piece4: {fileID: 1807573256452614}
+  pieceContainer1: {fileID: 1207552765193908}
+  pieceContainer2: {fileID: 1913656828659832}
+  pieceContainer3: {fileID: 1350700209506878}
+  pieceContainer4: {fileID: 1807573256452614}
   puzzlePiece1x1Template: {fileID: 1059011352881588, guid: 10818ea78b3d4a743960756b03ca383a,
     type: 2}
   tileMaterials:

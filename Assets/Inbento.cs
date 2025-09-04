@@ -22,10 +22,11 @@ public class Inbento : MonoBehaviour {
    public GameObject helloWorldText;
 
    // These objects will hold all the tiles, so you can easily add add and position tiles, then rotate the whole shape
-   public GameObject piece1;
-   public GameObject piece2;
-   public GameObject piece3;
-   public GameObject piece4;
+   public GameObject pieceContainer1;
+   public GameObject pieceContainer2;
+   public GameObject pieceContainer3;
+   public GameObject pieceContainer4;
+
 
    public GameObject puzzlePiece1x1Template;
 
@@ -39,9 +40,12 @@ public class Inbento : MonoBehaviour {
 
    int[][] Solution;
    int[][] BoardState;
-   int boardWidth = 3; // in case I want to increase the size of the grid later
-   int boardHeight = 3;
-   int numberOfPieces = 4;
+   static int boardWidth = 3; // in case I want to increase the size of the grid later
+   static int boardHeight = 3;
+   static int numberOfPieces = 4;
+
+   private List<GameObject> pieceContainers = new List<GameObject>();
+   private List<Piece> pieces = new List<Piece>();
 
    void Awake () { //Avoid doing calculations in here regarding edgework. Just use this for setting up buttons for simplicity.
       ModuleId = ModuleIdCounter++;
@@ -74,6 +78,11 @@ public class Inbento : MonoBehaviour {
       // foreach (GameObject tileObject in SolutionTileObjects) {
       //    tileObject.GetComponent<MeshRenderer>().material = tileMaterials[0];
       // }
+
+      // initialize the piece container list
+      pieceContainers.AddRange(new GameObject[] { pieceContainer1, pieceContainer2, pieceContainer3, pieceContainer4 });
+      
+
 
       // Create a random solution
       Solution = createEmptyTiles();
@@ -111,6 +120,7 @@ public class Inbento : MonoBehaviour {
                }
             }
          }
+         pieces.Add(generatedPiece);
       }
 
       // Draw the board state
@@ -120,6 +130,30 @@ public class Inbento : MonoBehaviour {
             var tileObject = BoardTileObjects[i * 3 + j];
             tileObject.GetComponent<MeshRenderer>().material = tileMaterials[materialIndex];
          }
+      }
+
+      // Draw the pieces
+      for (int i = 0; i < numberOfPieces; i++) {
+         var pieceContainer = pieceContainers[i];
+         var piece = pieces[i];
+
+         var onexoneMaterial = 0;
+         for (int j = 0; j < boardHeight; j++) {
+            for (int k = 0; k < boardWidth; k++) {
+               if (piece.tiles[j][k] != 0) {
+                  onexoneMaterial = piece.tiles[j][k];
+               }
+            }
+         }
+
+         Debug.Log(pieceContainer);
+         
+         var newPiece = Instantiate(puzzlePiece1x1Template, pieceContainer.transform.position, Quaternion.identity);
+         newPiece.transform.parent = pieceContainer.transform;
+         newPiece.transform.localPosition = new Vector3(puzzlePiece1x1Template.transform.localPosition.x, puzzlePiece1x1Template.transform.localPosition.y, puzzlePiece1x1Template.transform.localPosition.z);
+         newPiece.transform.localRotation = Quaternion.identity;
+         newPiece.transform.localScale = new Vector3(puzzlePiece1x1Template.transform.localScale.x, puzzlePiece1x1Template.transform.localScale.y, puzzlePiece1x1Template.transform.localScale.z);
+         newPiece.GetComponent<MeshRenderer>().material = tileMaterials[onexoneMaterial];
       }
 
       testFunction();
