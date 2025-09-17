@@ -33,6 +33,7 @@ public class Inbento : MonoBehaviour {
    public Material[] tileMaterials; // 0 is reserved as an empty value
 
    public KMSelectable undoButton;
+   public KMSelectable resetButton;
 
    static int ModuleIdCounter = 1;
    int ModuleId;
